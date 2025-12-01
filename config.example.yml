@@ -1,0 +1,13 @@
+# RSS Feed Aggregator Configuration
+# Copy this file to config.yml and customize your sources
+
+# Organize sources into groups
+# Each group becomes a tab in the UI
+groups:
+  Personal Blogs:
+    - gatesnotes
+    - paulgraham
+
+  Tech Companies:
+    - uber
+    - airbnb

@@ -1,0 +1,69 @@
+{
+  "sources": {
+    "gatesnotes": {
+      "name": "Gates Notes",
+      "url": "https://www.gatesnotes.com/",
+      "type": "bridge"
+    },
+    "paulgraham": {
+      "name": "Paul Graham",
+      "url": "http://www.aaronsw.com/2002/feeds/pgessays.rss",
+      "type": "rss"
+    },
+    "simonwillison": {
+      "name": "Simon Willison",
+      "url": "https://simonwillison.net/atom/everything/",
+      "type": "rss"
+    },
+    "seangoedecke": {
+      "name": "Sean Goedecke",
+      "url": "https://www.seangoedecke.com/rss.xml",
+      "type": "rss"
+    },
+    "makingsoftware": {
+      "name": "Making Software",
+      "url": "https://www.makingsoftware.com/rss/",
+      "type": "rss"
+    },
+    "uber": {
+      "name": "Uber Engineering",
+      "url": "https://eng.uber.com/feed/",
+      "type": "rss"
+    },
+    "meta": {
+      "name": "Meta Engineering",
+      "url": "https://engineering.fb.com/feed/",
+      "type": "rss"
+    },
+    "netflix": {
+      "name": "Netflix Tech Blog",
+      "url": "https://netflixtechblog.com/feed",
+      "type": "rss"
+    },
+    "airbnb": {
+      "name": "Airbnb Tech",
+      "url": "https://medium.com/feed/airbnb-engineering",
+      "type": "rss"
+    },
+    "spotify": {
+      "name": "Spotify Engineering",
+      "url": "https://engineering.atspotify.com/feed/",
+      "type": "rss"
+    },
+    "googleresearch": {
+      "name": "Google Research",
+      "url": "https://blog.research.google/feeds/posts/default?alt=rss",
+      "type": "rss"
+    },
+    "resend": {
+      "name": "Resend",
+      "url": "https://resend.com/blog/rss",
+      "type": "rss"
+    },
+    "anthropic": {
+      "name": "Anthropic",
+      "url": "https://raw.githubusercontent.com/conoro/anthropic-engineering-rss-feed/main/anthropic_engineering_rss.xml",
+      "type": "rss"
+    }
+  }
+}
