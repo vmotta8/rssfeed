@@ -4,7 +4,8 @@
   "description": "Simple RSS feed aggregator",
   "type": "module",
   "scripts": {
-    "start": "node src/build.js && node src/server.js"
+    "start": "node src/build.js && node src/server.js",
+    "docker": "docker compose -f .rss/docker-compose.yml up --build"
   },
   "dependencies": {
     "better-sqlite3": "^11.6.0",

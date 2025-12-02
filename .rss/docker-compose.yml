@@ -1,0 +1,14 @@
+services:
+  rssfeed:
+    container_name: rssfeed
+    build:
+      context: ..
+      dockerfile: .rss/Dockerfile
+    ports:
+      - "3030:3030"
+    volumes:
+      - ../data:/app/data
+      - ../config.yml:/app/config.yml:ro
+    environment:
+      - PORT=3030
+    restart: unless-stopped
