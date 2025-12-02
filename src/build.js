@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import yaml from 'js-yaml';
+import { getCachedArticles, setCachedArticles } from './cache.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,24 +30,32 @@ if (existsSync(join(rootDir, 'config.yml'))) {
 }
 
 const bridges = {
-  gatesnotes: () => import('./bridges/gatesnotes.js').then(m => m.fetchGatesNotes())
+  gatesnotes: () => import('./bridges/gatesnotes.js').then(m => m.fetchGatesNotes()),
+  uber: () => import('./bridges/uber.js').then(m => m.fetchUber()),
+  resend: () => import('./bridges/resend.js').then(m => m.fetchResend()),
+  paulgraham: () => import('./bridges/paulgraham.js').then(m => m.fetchPaulGraham()),
+  anthropic: () => import('./bridges/anthropic.js').then(m => m.fetchAnthropic()),
+  openai: () => import('./bridges/openai.js').then(m => m.fetchOpenAI())
 };
+
+const MAX_ARTICLES_PER_SOURCE = 20;
 
 async function fetchRssFeed(id, source) {
   try {
     console.log(`Fetching ${source.name}...`);
     const result = await parser.parseURL(source.url);
-    return result.items.map(item => ({
+    const articles = result.items.slice(0, MAX_ARTICLES_PER_SOURCE).map(item => ({
       title: item.title || 'Untitled',
       link: item.link || '#',
       date: item.isoDate || item.pubDate || null,
       sourceId: id,
       source: source.name,
-      description: item.contentSnippet || item.content || ''
+      description: item.contentSnippet || item['content:encodedSnippet'] || item.content || ''
     }));
+    return articles;
   } catch (error) {
     console.error(`Failed to fetch ${source.name}: ${error.message}`);
-    return [];
+    throw error;
   }
 }
 
@@ -57,23 +66,42 @@ async function fetchSource(id) {
     return [];
   }
 
-  if (source.type === 'bridge') {
-    if (bridges[id]) {
-      try {
+  const cached = getCachedArticles(id);
+  if (cached) {
+    console.log(`Using cached ${source.name} (${cached.length} articles)`);
+    return cached;
+  }
+
+  try {
+    let articles;
+
+    if (source.type === 'bridge') {
+      if (bridges[id]) {
         console.log(`Fetching ${source.name} (bridge)...`);
-        const articles = await bridges[id]();
-        return articles.map(a => ({ ...a, sourceId: id }));
-      } catch (error) {
-        console.error(`Failed to fetch ${source.name}: ${error.message}`);
+        articles = await bridges[id]();
+        articles = articles.slice(0, MAX_ARTICLES_PER_SOURCE).map(a => ({ ...a, sourceId: id }));
+      } else {
+        console.error(`No bridge found for: ${id}`);
         return [];
       }
     } else {
-      console.error(`No bridge found for: ${id}`);
-      return [];
+      articles = await fetchRssFeed(id, source);
     }
-  }
 
-  return fetchRssFeed(id, source);
+    setCachedArticles(id, articles, 'success');
+    return articles;
+
+  } catch (error) {
+    console.error(`Failed to fetch ${source.name}: ${error.message}`);
+
+    const fallback = getCachedArticles(id, true);
+    if (fallback && fallback.length > 0) {
+      console.log(`Using stale cache for ${source.name} (${fallback.length} articles)`);
+      return fallback;
+    }
+
+    return [];
+  }
 }
 
 function escapeHtml(text) {
@@ -333,7 +361,7 @@ function generateHtml(articles, groups, sourceNames) {
     const sourceNames = ${JSON.stringify(sourceNames)};
 
     let currentGroup = '${escapeHtml(firstGroup)}';
-    let currentSource = 'all';
+    let hiddenSources = new Set();
     let savedLinks = new Set();
 
     // Format date helper
@@ -466,9 +494,9 @@ function generateHtml(articles, groups, sourceNames) {
       document.querySelectorAll('#feedArticles .article').forEach(article => {
         const sourceId = article.dataset.source;
         const inGroup = groupSources.includes(sourceId);
-        const matchesSource = currentSource === 'all' || sourceId === currentSource;
+        const isVisible = !hiddenSources.has(sourceId);
 
-        if (inGroup && matchesSource) {
+        if (inGroup && isVisible) {
           article.classList.remove('hidden');
         } else {
           article.classList.add('hidden');
@@ -486,27 +514,56 @@ function generateHtml(articles, groups, sourceNames) {
 
       const sources = groups[currentGroup] || [];
 
-      let html = '<button class="filter-btn active" data-source="all">All</button>';
+      let html = '';
       sources.forEach(id => {
         const name = sourceNames[id] || id;
-        html += \`<button class="filter-btn" data-source="\${id}">\${name}</button>\`;
+        const isActive = !hiddenSources.has(id);
+        html += \`<button class="filter-btn\${isActive ? ' active' : ''}" data-source="\${id}">\${name}</button>\`;
       });
 
       container.innerHTML = html;
 
       container.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentSource = btn.dataset.source;
+        btn.addEventListener('click', (e) => {
+          const sourceId = btn.dataset.source;
+
+          if (e.ctrlKey || e.metaKey) {
+            const onlyThisVisible = hiddenSources.size === sources.length - 1 && !hiddenSources.has(sourceId);
+            if (onlyThisVisible) {
+              hiddenSources.clear();
+            } else {
+              hiddenSources.clear();
+              sources.forEach(id => {
+                if (id !== sourceId) hiddenSources.add(id);
+              });
+            }
+          } else {
+            if (hiddenSources.has(sourceId)) {
+              hiddenSources.delete(sourceId);
+            } else {
+              hiddenSources.add(sourceId);
+            }
+          }
+
+          updateFilterButtons();
           filterArticles();
         });
       });
     }
 
+    function updateFilterButtons() {
+      document.querySelectorAll('#sourceFilters .filter-btn').forEach(btn => {
+        if (hiddenSources.has(btn.dataset.source)) {
+          btn.classList.remove('active');
+        } else {
+          btn.classList.add('active');
+        }
+      });
+    }
+
     function switchToGroup(groupName) {
       currentGroup = groupName;
-      currentSource = 'all';
+      hiddenSources.clear();
 
       const feedArticles = document.getElementById('feedArticles');
       const savedArticles = document.getElementById('savedArticles');
