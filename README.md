@@ -2,6 +2,8 @@
 
 A simple RSS feed aggregator that collects articles from various tech blogs and research sources into a single page.
 
+![Feed screenshot](public/feed.png)
+
 ## About
 
 This is a personal project I use to keep up with news from sources I follow. It was vibe coded, most of the code was generated with LLMs. I didn't want anything complex, so it uses SQLite for storage and I keep the data in my Dropbox folder for easy syncing.
