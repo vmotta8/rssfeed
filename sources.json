@@ -35,6 +35,11 @@
       "url": "https://medium.com/feed/airbnb-engineering",
       "type": "rss"
     },
+    "nubank": {
+      "name": "Nubank",
+      "url": "https://building.nubank.com/feed/",
+      "type": "rss"
+    },
     "resend": {
       "name": "Resend",
       "url": "https://resend.com/blog",

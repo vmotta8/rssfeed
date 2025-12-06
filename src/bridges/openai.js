@@ -1,15 +1,17 @@
-const RESEARCH_URL = 'https://openai.com/research/index/';
+const RESEARCH_URL = 'https://openai.com/news/research/';
 
 const headers = {
-  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-  'accept-language': 'en-US,en;q=0.9',
+  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+  'accept-language': 'en-US,en;q=0.9,pt;q=0.8',
   'cache-control': 'max-age=0',
-  'sec-ch-ua': '"Chromium";v="142"',
+  'dnt': '1',
+  'priority': 'u=0, i',
+  'sec-ch-ua': '"Not_A Brand";v="99", "Chromium";v="142"',
   'sec-ch-ua-mobile': '?0',
   'sec-ch-ua-platform': '"macOS"',
   'sec-fetch-dest': 'document',
   'sec-fetch-mode': 'navigate',
-  'sec-fetch-site': 'none',
+  'sec-fetch-site': 'same-origin',
   'sec-fetch-user': '?1',
   'upgrade-insecure-requests': '1',
   'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
@@ -30,10 +32,10 @@ export async function fetchOpenAI() {
     const articles = [];
     const seenSlugs = new Set();
 
-    const pattern = /\\"id\\":\\"[^"\\]+\\",\\"slug\\":\\"(index\/[^"\\]+)\\",\\"categories\\":\[[^\]]*\],\\"title\\":\\"([^"\\]+)\\",\\"publicationDate\\":\\"([^"\\]+)\\"/g;
+    const pattern = /\\"slug\\":\\"(index\/[^\\]+)\\",.*?\\"title\\":\\"([^\\]+)\\",\\"publicationDate\\":\\"([^\\]+)\\"/g;
 
     const descriptions = {};
-    const descPattern = /\\"slug\\":\\"(index\/[^"\\]+)\\"[\s\S]*?\\"seoFields\\":\{[^}]*\\"metaDescription\\":\\"([^"\\]+)\\"/g;
+    const descPattern = /\\"slug\\":\\"(index\/[^\\]+)\\".*?\\"metaDescription\\":\\"([^\\]+)\\"/g;
 
     let descMatch;
     while ((descMatch = descPattern.exec(html)) !== null) {
@@ -42,6 +44,7 @@ export async function fetchOpenAI() {
         descriptions[slug] = desc
           .replace(/\\u003e/g, '>')
           .replace(/\\u003c/g, '<')
+          .replace(/\\u0026/g, '&')
           .replace(/\\"/g, '"');
       }
     }
@@ -64,11 +67,12 @@ export async function fetchOpenAI() {
       const cleanTitle = title
         .replace(/\\u003e/g, '>')
         .replace(/\\u003c/g, '<')
+        .replace(/\\u0026/g, '&')
         .replace(/\\"/g, '"');
 
       articles.push({
         title: cleanTitle,
-        link: `https://openai.com/${slug}`,
+        link: `https://openai.com/${slug}/`,
         date,
         source: 'OpenAI',
         description: descriptions[slug] || cleanTitle,
